@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Minhas Finanças</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#111827" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- CSS EMBUTIDO SÓ PRA GARANTIR QUE O VISUAL FUNCIONE -->
+<style>
+  /* Tema Escuro (Padrão) */
+  :root {
+    --bg: #020617;
+    --bg-elevated: #0f172a;
+    --bg-soft: #020617;
+    --border-soft: #1e293b;
+    --text-main: #e5e7eb;
+    --text-muted: #9ca3af;
+    --accent: #a855f7; /* Roxo */
+    --accent-soft: rgba(168, 85, 247, 0.15);
+    --positive: #22c55e;
+    --negative: #ef4444;
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.4);
+    --max-width: 520px;
+  }
+
+  /* Tema Claro */
+  html.light {
+    --bg: #f1f5f9;
+    --bg-elevated: #ffffff;
+    --bg-soft: #f8fafc;
+    --border-soft: #e2e8f0;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --accent: #9333ea;
+    --accent-soft: rgba(147, 51, 234, 0.1);
+    --positive: #16a34a;
+    --negative: #dc2626;
+    --shadow-soft: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;      /* tudo centralizado */
+    transition: background 0.3s, color 0.3s;
+  }
+
+  html.light body {
+     background: var(--bg);
+  }
+  html.dark body {
+    background: radial-gradient(circle at top, #0f172a 0, #020617 45%, #020617 100%);
+  }
+
+
+  main,
+  .app-header {
+    width: 100%;
+    max-width: var(--max-width);   /* largura de “app” */
+  }
+
+  main {
+    padding: 0 1rem 6rem; /* Aumentado padding-bottom para a nova nav */
+  }
+
+  /* Header */
+
+  .app-header {
+    padding: 1.5rem 1rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: center; /* Força a centralização do conteúdo principal */
+    align-items: center;
+    position: relative; /* Permite posicionar o botão de tema */
+    width: 100%;
+  }
+
+  .header-main {
+    text-align: center;
+  }
+
+  .app-header h1 {
+    margin: 0;
+    font-size: 1.35rem;
+  }
+  html.light .app-header h1 {
+    background: linear-gradient(135deg, var(--accent), #4c1d95);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  html.dark .app-header h1 {
+    background: linear-gradient(135deg, var(--accent), #e5e7eb);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+
+  .subtitle {
+    margin: 0.15rem 0 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  /* Ações do cabeçalho (botão de tema) */
+  .header-actions {
+    position: absolute;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .theme-toggle-btn {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-soft);
+    color: var(--text-muted);
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.1rem;
+  }
+
+  .theme-toggle-btn .icon-sun { display: none; }
+  .theme-toggle-btn .icon-moon { display: block; }
+  html.light .theme-toggle-btn .icon-sun { display: block; }
+  html.light .theme-toggle-btn .icon-moon { display: none; }
+
+  .back-btn {
+    position: absolute;
+    left: 0;
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: none; /* Oculto por padrão */
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  body.sub-page .header-main { text-align: center; } /* Mantém o centro */
+  body.sub-page .header-top { justify-content: center; } /* Mantém o centro */
+
+
+  .month-picker {
+    margin-top: 0.5rem;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: var(--bg-elevated);
+    border-radius: 999px;
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--border-soft);
+  }
+
+  .month-picker span {
+    font-size: 0.85rem;
+  }
+
+  .month-picker button {
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  /* --- NOVO RESUMO --- */
+  .summary-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .balance-card {
+    width: 80%;
+    max-width: 300px;
+    padding: 1.2rem 1rem;
+    border-radius: var(--radius-lg);
+    background: var(--bg-elevated);
+    border: 1px solid var(--accent);
+    text-align: center;
+    box-shadow: 0 0 25px var(--accent-soft), 0 0 45px rgba(168, 85, 247, 0.3);
+    margin-bottom: 1rem;
+  }
+  html.dark .balance-card {
+     background: radial-gradient(circle at center, #1e1b4b, var(--bg-elevated));
+  }
+
+  .balance-card .label {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .balance-card .value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-top: 0.25rem;
+    display: block;
+  }
+
+  .summary-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .card {
+    background: var(--bg-elevated);
+    border-radius: var(--radius-md);
+    padding: 0.8rem;
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-soft);
+  }
+  html.dark .card {
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.7));
+    backdrop-filter: blur(14px);
+  }
+
+
+  .card .label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .card .value {
+    display: block;
+    margin-top: 0.25rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+
+  .card.positive .value {
+    color: var(--positive);
+  }
+
+  .card.negative .value {
+    color: var(--negative);
+  }
+
+  /* Tab content */
+
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  /* Form */
+
+  #transactionForm, #accountForm, #transferForm, .category-section, #recurringForm {
+    background: var(--bg-elevated);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .field-group {
+    margin-bottom: 0.75rem;
+  }
+
+  .field-group label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="month"],
+  select,
+  textarea {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid var(--border-soft);
+    padding: 0.5rem 0.6rem;
+    background: var(--bg-soft);
+    color: var(--text-main);
+    font-size: 0.85rem;
+  }
+
+  textarea {
+    resize: vertical;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: 2px solid var(--accent);
+    border-color: transparent;
+  }
+
+  .type-group {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .type-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-soft);
+    font-size: 0.8rem;
+  }
+  html.dark .type-group label {
+    background: rgba(30, 64, 175, 0.35);
+    border: 1px solid rgba(129, 140, 248, 0.5);
+  }
+
+
+  /* Buttons */
+
+  .btn-primary {
+    width: 100%;
+    border: none;
+    border-radius: 999px;
+    padding: 0.6rem 0.65rem;
+    background: var(--accent);
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(168, 85, 247, 0.3);
+  }
+  html.dark .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #6d28d9);
+    box-shadow: 0 12px 28px rgba(168, 85, 247, 0.4);
+  }
+
+
+  .btn-outline {
+    border-radius: 999px;
+    border: 1px solid var(--border-soft);
+    background: transparent;
+    color: var(--text-main);
+    padding: 0.3rem 0.7rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  .btn-outline.small {
+    padding: 0.2rem 0.6rem;
+    font-size: 0.7rem;
+  }
+
+  /* Lista de lançamentos */
+
+  .list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .transaction-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .transaction-list li, .account-item {
+    display: flex;
+    align-items: center;
+    background: var(--bg-elevated);
+    border-radius: 14px;
+    padding: 0.55rem 0.7rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--border-soft);
+  }
+
+  .transaction-main {
+    flex: 1;
+  }
+
+  .transaction-title {
+    font-size: 0.85rem;
+  }
+
+  .transaction-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
+  .transaction-amount {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-left: 0.5rem;
+  }
+
+  .transaction-amount.income {
+    color: var(--positive);
+  }
+
+  .transaction-amount.expense {
+    color: var(--negative);
+  }
+
+  .delete-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-left: 0.5rem;
+    cursor: pointer;
+    padding: 0.2rem;
+  }
+  .delete-btn:hover { color: var(--negative); }
+
+
+  .edit-btn {
+    border: none; background: transparent; color: var(--text-muted);
+    font-size: 0.9rem; margin-left: 0.25rem; cursor: pointer; padding: 0.2rem;
+  }
+  .edit-btn:hover { color: var(--accent); }
+
+  .transaction-list li.unpaid {
+    opacity: 0.7;
+    border-left: 4px solid var(--text-muted);
+  }
+
+  .mark-paid-btn {
+    border: none; background: transparent; color: var(--text-muted);
+    font-size: 1.1rem; margin-left: 0.25rem; cursor: pointer; padding: 0.2rem;
+  }
+  .mark-paid-btn:hover {
+    color: var(--positive);
+  }
+
+  .unmark-paid-btn {
+    border: none; background: transparent; color: var(--text-muted);
+    font-size: 1.1rem; margin-left: 0.25rem; cursor: pointer; padding: 0.2rem;
+  }
+  .unmark-paid-btn:hover {
+    color: var(--accent);
+  }
+
+  .empty-message {
+    margin-top: 0.7rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  /* Categorias, Contas, etc. */
+
+  #tab-categories h2, #tab-accounts h2, #tab-transfer h2, #tab-recurring h2, #tab-report h2, #tab-more h2 {
+    margin: 0 0 0.8rem;
+    font-size: 1.1rem;
+  }
+
+  .category-section {
+    padding: 0.7rem 0.8rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .category-section h3 {
+    margin: 0 0 0.4rem;
+    font-size: 0.9rem;
+  }
+
+  .category-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .category-list li {
+    display: flex;
+    align-items: center;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-soft);
+  }
+
+  .category-form {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .category-form input {
+    flex: 1;
+  }
+
+  /* Chart Container */
+  .chart-container {
+    background: var(--bg-elevated);
+    border-radius: var(--radius-lg);
+    padding: 0.8rem;
+    border: 1px solid var(--border-soft);
+    margin-top: 1rem;
+  }
+
+  #expenseChart {
+    max-height: 180px; /* Reduzido para deixar mais compacto */
+  }
+
+
+  .chart-container h3 {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+    text-align: center;
+    color: var(--text-muted);
+  }
+
+  /* Seção de Contas a Vencer */
+  .upcoming-bills-section {
+    margin-top: 1.5rem;
+  }
+
+  .upcoming-bills-section h3 {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .upcoming-bills-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .bill-alert-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    background: var(--bg-elevated);
+    border-radius: 14px;
+    padding: 0.6rem 0.8rem;
+    border-left: 4px solid; /* Indicador colorido */
+  }
+
+  .bill-alert-item.overdue { border-left-color: var(--negative); }
+  .bill-alert-item.upcoming { border-left-color: #f59e0b; /* Âmbar/Laranja */ }
+  .bill-alert-item.income { border-left-color: var(--positive); }
+  .bill-alert-item .description { font-size: 0.85rem; }
+  .bill-alert-item .due-date { font-size: 0.7rem; color: var(--text-muted); }
+
+  /* Accounts Section */
+  .accounts-section {
+    margin-top: 1rem;
+  }
+
+  .accounts-section h3 {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .accounts-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .account-item {
+    gap: 0.75rem;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .account-item img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #fff;
+  }
+
+  .account-item-info {
+    flex: 1;
+  }
+
+  .account-item-balance {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  /* --- NOVA NAVEGAÇÃO INFERIOR --- */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: var(--max-width);
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 56px;
+    background: var(--bg-elevated);
+    border-top: 1px solid var(--border-soft);
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+  }
+  html.dark .bottom-nav {
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(10px);
+  }
+
+  .nav-button {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 0.65rem;
+    padding: 4px;
+    flex: 1;
+    height: 100%;
+    cursor: pointer;
+  }
+  .nav-button.active {
+    color: var(--accent);
+  }
+  .nav-button .icon {
+    font-size: 1.3rem;
+  }
+
+  .fab-add {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #6d28d9);
+    border: 3px solid var(--bg-elevated);
+    color: white;
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transform: translateY(-40%);
+    box-shadow: 0 8px 20px rgba(168, 85, 247, 0.4);
+  }
+
+  /* Tela "Mais" */
+  .more-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .more-list-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-md);
+    color: var(--text-main);
+    text-decoration: none;
+  }
+  .more-list-item .icon {
+    font-size: 1.2rem;
+    color: var(--accent);
+  }
+
+  @media (min-width: 600px) {
+    main {
+      padding-bottom: 3.5rem;
+    }
+  }
+</style>
+
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-top">
+      <button id="backBtn" class="back-btn" title="Voltar">←</button> <!-- Posicionado à esquerda -->
+      <div class="header-main"> <!-- Este div agora centraliza o texto -->
+          <h1>Minhas Finanças</h1>
+          <p class="subtitle">Controle simples e rápido</p>
+      </div>
+      <div class="header-actions"> <!-- Posicionado à direita -->
+        <button id="themeToggleBtn" class="theme-toggle-btn" title="Mudar tema">
+          <span class="icon-sun">☀️</span>
+          <span class="icon-moon">🌙</span>
+        </button>
+      </div>
+    </div>
+    <div id="headerMonthPicker" class="month-picker"> <!-- Seletor de mês permanece centralizado abaixo -->
+      <button id="prevMonthBtn" aria-label="Mês anterior">&lt;</button>
+      <span id="currentMonthLabel"></span>
+      <button id="nextMonthBtn" aria-label="Próximo mês">&gt;</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Tab: Resumo (Nova tela inicial) -->
+    <section id="tab-summary" class="tab-content active">
+      <div class="summary-hero">
+        <div class="balance-card">
+          <span class="label">Saldo Atual</span>
+          <span id="summaryBalance" class="value">R$ 0,00</span>
+        </div>
+        <div class="summary-details">
+          <div class="card positive">
+            <span class="label">Entradas</span>
+            <span id="summaryIncome" class="value">R$ 0,00</span>
+          </div>
+          <div class="card negative">
+            <span class="label">Saídas</span>
+            <span id="summaryExpense" class="value">R$ 0,00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <h3>Despesas por Categoria</h3>
+        <canvas id="expenseChart"></canvas>
+      </div>
+
+      <div class="accounts-section">
+        <h3>Minhas Contas</h3>
+        <ul id="accountsList" class="accounts-list">
+          <!-- Contas serão inseridas aqui via JS -->
+        </ul>
+        <p id="emptyAccountsMessage" class="empty-message">Nenhuma conta cadastrada.</p>
+      </div>
+    </section>
+
+    <!-- Seção de Contas a Vencer (adicionada dentro da tab-summary) -->
+    <section id="tab-summary-bills" class="tab-content active">
+        <div class="upcoming-bills-section">
+            <h3>Contas a Vencer</h3>
+            <ul id="upcomingBillsList" class="upcoming-bills-list"></ul>
+            <p id="emptyBillsMessage" class="empty-message">Tudo em dia! Nenhuma conta próxima do vencimento.</p>
+        </div>
+    </section>
+
+    <!-- Seção de Recebimentos a Receber -->
+    <section id="tab-summary-income" class="tab-content active">
+        <div class="upcoming-bills-section">
+            <h3>Recebimentos a Receber</h3>
+            <ul id="upcomingIncomeList" class="upcoming-bills-list"></ul>
+            <p id="emptyIncomeMessage" class="empty-message">Nenhum recebimento previsto para este mês.</p>
+        </div>
+    </section>
+
+    <!-- Tab: Lançar -->
+    <section id="tab-add" class="tab-content">
+      <h2 id="formTitle">Novo Lançamento</h2>
+      <form id="transactionForm" autocomplete="off">
+        <input type="hidden" name="transactionId" value="">
+        <div class="field-group type-group">
+          <label>
+            <input type="radio" name="type" value="income" checked />
+            Entrada
+          </label>
+          <label>
+            <input type="radio" name="type" value="expense" />
+            Saída
+          </label>
+        </div>
+
+        <div class="field-group">
+          <label>Descrição</label>
+          <input type="text" name="description" required placeholder="Ex: Mercado, Salário..." />
+        </div>
+
+        <div class="field-group">
+          <label>Valor</label>
+          <input type="number" name="amount" step="0.01" min="0" required placeholder="0,00" />
+        </div>
+
+        <div class="field-group">
+          <label>Data</label>
+          <input type="date" name="date" required />
+        </div>
+
+        <div class="field-group">
+          <label>Categoria</label>
+          <select name="category" id="categorySelect" required></select>
+        </div>
+
+        <div class="field-group">
+          <label>Conta</label>
+          <select name="accountId" id="accountSelect" required></select>
+        </div>
+
+        <div class="field-group">
+          <label>Observação (opcional)</label>
+          <textarea name="note" rows="2" placeholder="Detalhes extras, se quiser"></textarea>
+        </div>
+
+        <button type="submit" id="formSubmitBtn" class="btn-primary">Salvar Lançamento</button>
+      </form>
+    </section>
+
+    <!-- Tab: Lista -->
+    <section id="tab-list" class="tab-content">
+      <div class="list-header">
+        <span>Lançamentos do mês</span>
+        <button id="clearMonthBtn" class="btn-outline small">Limpar mês</button>
+      </div>
+      <ul id="transactionList" class="transaction-list"></ul>
+      <p id="emptyListMessage" class="empty-message">Nenhum lançamento neste mês.</p>
+    </section>
+
+    <!-- Tab: Categorias -->
+    <section id="tab-categories" class="tab-content">
+      <h2>Categorias</h2>
+
+      <div class="category-section">
+        <h3>Entradas</h3>
+        <ul id="incomeCategoryList" class="category-list"></ul>
+        <form class="category-form" data-type="income">
+          <input type="text" placeholder="Nova categoria de entrada" required />
+          <button type="submit" class="btn-outline small">Adicionar</button>
+        </form>
+      </div>
+
+      <div class="category-section">
+        <h3>Saídas</h3>
+        <ul id="expenseCategoryList" class="category-list"></ul>
+        <form class="category-form" data-type="expense">
+          <input type="text" placeholder="Nova categoria de saída" required />
+          <button type="submit" class="btn-outline small">Adicionar</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Tab: Contas -->
+    <section id="tab-accounts" class="tab-content">
+      <h2>Gerenciar Contas</h2>
+      <form id="accountForm" autocomplete="off">
+        <div class="field-group">
+          <label>Nome da Conta</label>
+          <input type="text" name="accountName" required placeholder="Ex: Nubank, Itaú..." />
+        </div>
+
+        <div class="field-group">
+          <label>Saldo Inicial</label>
+          <input type="number" name="accountBalance" step="0.01" min="0" required placeholder="0,00" />
+        </div>
+
+        <div class="field-group">
+          <label>URL do Logo</label>
+          <input type="text" name="accountLogo" placeholder="https://site.com/logo.png" />
+        </div>
+
+        <button type="submit" class="btn-primary">Adicionar Conta</button>
+      </form>
+      <div class="accounts-section" style="margin-top: 1.5rem;">
+        <h3>Contas Cadastradas</h3>
+        <ul id="manageAccountsList" class="accounts-list"></ul>
+      </div>
+    </section>
+
+    <!-- Tab: Transferência -->
+    <section id="tab-transfer" class="tab-content">
+      <h2>Transferir entre Contas</h2>
+      <form id="transferForm" autocomplete="off">
+        <div class="field-group">
+          <label>Da Conta (Origem)</label>
+          <select name="fromAccountId" id="fromAccountSelect" required></select>
+        </div>
+
+        <div class="field-group">
+          <label>Para a Conta (Destino)</label>
+          <select name="toAccountId" id="toAccountSelect" required></select>
+        </div>
+
+        <div class="field-group">
+          <label>Valor</label>
+          <input type="number" name="transferAmount" step="0.01" min="0.01" required placeholder="0,00" />
+        </div>
+
+        <div class="field-group">
+          <label>Data</label>
+          <input type="date" name="transferDate" required />
+        </div>
+
+        <button type="submit" class="btn-primary">Realizar Transferência</button>
+      </form>
+    </section>
+
+    <!-- Tab: Recorrências -->
+    <section id="tab-recurring" class="tab-content">
+      <h2>Despesas Recorrentes</h2>
+      <form id="recurringForm" autocomplete="off">
+        <div class="field-group type-group">
+          <label>
+            <input type="radio" name="recTransactionType" value="expense" checked />
+            Despesa
+          </label>
+          <label>
+            <input type="radio" name="recTransactionType" value="income" />
+            Receita
+          </label>
+        </div>
+
+        <div class="field-group">
+          <label>Descrição</label>
+          <input type="text" name="recDescription" required placeholder="Ex: Netflix, Aluguel, Parcela Notebook..." />
+        </div>
+
+        <div class="field-group">
+          <label>Valor (da parcela ou mensal)</label>
+          <input type="number" name="recAmount" step="0.01" min="0.01" required placeholder="0,00" />
+        </div>
+
+        <div class="field-group">
+          <label>Conta Padrão</label>
+          <select name="recAccountId" id="recAccountSelect" required></select>
+        </div>
+
+        <div class="field-group">
+          <label>Categoria</label>
+          <select name="recCategory" id="recCategorySelect" required></select>
+        </div>
+
+        <div class="field-group">
+          <label>Tipo de Recorrência</label>
+          <select name="recType" id="recTypeSelect">
+            <option value="fixed">Fixa (Mensal)</option>
+            <option value="installment">Parcelada</option>
+          </select>
+        </div>
+
+        <div id="fixedOptions">
+          <div class="field-group">
+            <label>Dia do Vencimento</label>
+            <input type="number" name="recDayOfMonth" min="1" max="31" value="10" required />
+          </div>
+        </div>
+
+        <div id="installmentOptions" style="display: none;">
+          <div class="field-group">
+            <label>Número de Parcelas</label>
+            <input type="number" name="recTotalInstallments" min="2" value="12" />
+          </div>
+          <div class="field-group">
+            <label>Mês da Primeira Parcela</label>
+            <input type="month" name="recStartDate" />
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary">Adicionar Despesa Recorrente</button>
+      </form>
+
+      <div class="accounts-section" style="margin-top: 1.5rem;">
+        <h3>Recorrências Cadastradas</h3>
+        <ul id="recurringList" class="transaction-list"></ul>
+      </div>
+    </section>
+
+    <!-- Tab: Relatório Anual -->
+    <section id="tab-report" class="tab-content">
+      <h2>Relatório Anual</h2>
+      <div class="month-picker" style="margin-bottom: 1rem; justify-content: center;">
+        <button id="prevYearBtn" aria-label="Ano anterior">&lt;</button>
+        <span id="currentYearLabel"></span>
+        <button id="nextYearBtn" aria-label="Próximo ano">&gt;</button>
+      </div>
+
+      <div class="summary">
+        <div class="card positive">
+          <span class="label">Receita Anual</span>
+          <span id="annualIncome" class="value">R$ 0,00</span>
+        </div>
+        <div class="card negative">
+          <span class="label">Despesa Anual</span>
+          <span id="annualExpense" class="value">R$ 0,00</span>
+        </div>
+        <div class="card">
+          <span class="label">Balanço Anual</span>
+          <span id="annualBalance" class="value">R$ 0,00</span>
+        </div>
+      </div>
+
+      <div class="chart-container" style="margin-top: 1rem;">
+        <canvas id="annualReportChart"></canvas>
+      </div>
+    </section>
+
+    <!-- Tab: Mais (Agrupador) -->
+    <section id="tab-more" class="tab-content">
+        <h2>Mais Opções</h2>
+        <ul class="more-list">
+            <li>
+                <a href="#" class="more-list-item" data-tab-link="tab-categories">
+                    <span class="icon">🗂️</span>
+                    <span>Categorias</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" class="more-list-item" data-tab-link="tab-accounts">
+                    <span class="icon">🏦</span>
+                    <span>Contas</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" class="more-list-item" data-tab-link="tab-transfer">
+                    <span class="icon">🔄</span>
+                    <span>Transferir</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" class="more-list-item" data-tab-link="tab-recurring">
+                    <span class="icon">🔁</span>
+                    <span>Recorrências</span>
+                </a>
+            </li>
+        </ul>
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-button active" data-tab="tab-summary">
+      <span class="icon">🏠</span>
+      <span class="label">Resumo</span>
+    </button>
+    <button class="nav-button" data-tab="tab-list">
+      <span class="icon">🧾</span>
+      <span class="label">Lançamentos</span>
+    </button>
+    <button class="fab-add" data-tab="tab-add" title="Adicionar Lançamento">
+      <span>+</span>
+    </button>
+    <button class="nav-button" data-tab="tab-report">
+      <span class="icon">📊</span>
+      <span class="label">Relatório</span>
+    </button>
+    <button class="nav-button" data-tab="tab-more">
+      <span class="icon">⚙️</span>
+      <span class="label">Mais</span>
+    </button>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
